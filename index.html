@@ -1,535 +1,1056 @@
-diff --git a/index.html b/index.html
-index 8b137891791fe96927ad78e64b0aad7bded08bdc..dd4bab19875fb89dae67159aba04e3df61054b1e 100644
---- a/index.html
-+++ b/index.html
-@@ -1 +1,530 @@
-+<!DOCTYPE html>
-+<html lang="ja">
-+  <head>
-+    <meta charset="UTF-8" />
-+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-+    <title>学習時間トラッカー（1ファイル版）</title>
-+    <!-- Chart.js（CDN）: HTML単体でも動作するように外部ライブラリのみ読み込み -->
-+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
- 
-+    <style>
-+      :root {
-+        --bg: #000000;
-+        --card: #0f1115;
-+        --text: #f3f4f6;
-+        --muted: #a4acb8;
-+        --primary: #4c8dff;
-+        --primary-dark: #2f6fed;
-+        --danger: #ee5d5d;
-+        --danger-dark: #d64545;
-+        --border: #252a34;
-+        --shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-+      }
-+
-+      * {
-+        box-sizing: border-box;
-+      }
-+
-+      body {
-+        margin: 0;
-+        font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
-+        background: var(--bg);
-+        color: var(--text);
-+        line-height: 1.5;
-+      }
-+
-+      .app {
-+        max-width: 720px;
-+        margin: 0 auto;
-+        padding: 16px;
-+      }
-+
-+      .app-header h1 {
-+        margin: 0;
-+        font-size: 1.6rem;
-+      }
-+
-+      .app-header p {
-+        margin: 8px 0 0;
-+        color: var(--muted);
-+      }
-+
-+      .tab-nav {
-+        display: grid;
-+        grid-template-columns: repeat(3, 1fr);
-+        gap: 8px;
-+        margin: 20px 0;
-+      }
-+
-+      .tab-btn {
-+        border: 1px solid var(--border);
-+        background: #111522;
-+        border-radius: 10px;
-+        padding: 10px 8px;
-+        font-size: 0.95rem;
-+        cursor: pointer;
-+      }
-+
-+      .tab-btn.active {
-+        border-color: var(--primary);
-+        color: var(--primary);
-+        font-weight: 700;
-+      }
-+
-+      .screen {
-+        display: none;
-+      }
-+
-+      .screen.active {
-+        display: block;
-+      }
-+
-+      .card {
-+        background: var(--card);
-+        border-radius: 14px;
-+        box-shadow: var(--shadow);
-+        border: 1px solid var(--border);
-+        padding: 16px;
-+        margin-bottom: 14px;
-+      }
-+
-+      label {
-+        display: block;
-+        margin-bottom: 8px;
-+        font-weight: 700;
-+      }
-+
-+      input[type="number"] {
-+        width: 100%;
-+        padding: 12px;
-+        border: 1px solid #2f3745;
-+        background: #0c1019;
-+        color: var(--text);
-+        border-radius: 10px;
-+        font-size: 1rem;
-+        margin-bottom: 12px;
-+      }
-+
-+      button {
-+        border: none;
-+        border-radius: 10px;
-+        padding: 12px 14px;
-+        font-size: 1rem;
-+        cursor: pointer;
-+      }
-+
-+      button:disabled {
-+        cursor: not-allowed;
-+        opacity: 0.55;
-+      }
-+
-+      .primary {
-+        background: var(--primary);
-+        color: #fff;
-+      }
-+
-+      .primary:hover {
-+        background: var(--primary-dark);
-+      }
-+
-+      .danger {
-+        background: var(--danger);
-+        color: #fff;
-+      }
-+
-+      .danger:hover {
-+        background: var(--danger-dark);
-+      }
-+
-+      .subject-grid {
-+        display: grid;
-+        grid-template-columns: repeat(2, 1fr);
-+        gap: 8px;
-+        margin-bottom: 14px;
-+      }
-+
-+      .subject-btn {
-+        background: #141c2d;
-+        border: 1px solid #2b3d66;
-+        color: #d7e4ff;
-+      }
-+
-+      .subject-btn.active {
-+        background: #213862;
-+        border-color: var(--primary);
-+        color: #e7efff;
-+        font-weight: 700;
-+      }
-+
-+      .timer-actions {
-+        display: grid;
-+        grid-template-columns: 1fr 1fr;
-+        gap: 8px;
-+      }
-+
-+      .message {
-+        min-height: 1.3em;
-+        margin-top: 10px;
-+        color: #b7c0d1;
-+        font-size: 0.95rem;
-+      }
-+
-+      .stats-grid {
-+        display: grid;
-+        grid-template-columns: 1fr 1fr;
-+        gap: 10px;
-+      }
-+
-+      .stat h3 {
-+        margin: 0;
-+        font-size: 1rem;
-+      }
-+
-+      .stat p {
-+        margin: 8px 0 0;
-+        font-size: 1.3rem;
-+        font-weight: 700;
-+      }
-+
-+      .chart-card {
-+        padding-bottom: 8px;
-+      }
-+
-+      .chart-wrap {
-+        position: relative;
-+        height: 280px;
-+      }
-+
-+      @media (max-width: 560px) {
-+        .app-header h1 {
-+          font-size: 1.35rem;
-+        }
-+
-+        .tab-btn {
-+          font-size: 0.88rem;
-+          padding: 9px 4px;
-+        }
-+
-+        .stats-grid {
-+          grid-template-columns: 1fr;
-+        }
-+
-+        .subject-grid {
-+          grid-template-columns: 1fr;
-+        }
-+      }
-+    </style>
-+  </head>
-+  <body>
-+    <div class="app">
-+      <header class="app-header">
-+        <h1>学習時間トラッカー</h1>
-+        <p>1週間の学習時間を目標設定・記録・可視化</p>
-+      </header>
-+
-+      <!-- SPA 風の画面切り替え -->
-+      <nav class="tab-nav" aria-label="画面切り替え">
-+        <button class="tab-btn active" data-screen="goal-screen">目標設定</button>
-+        <button class="tab-btn" data-screen="record-screen">学習記録</button>
-+        <button class="tab-btn" data-screen="progress-screen">進捗確認</button>
-+      </nav>
-+
-+      <main>
-+        <!-- 1. 目標時間設定画面 -->
-+        <section id="goal-screen" class="screen active" aria-labelledby="goal-title">
-+          <h2 id="goal-title">目標時間設定（直近1週間）</h2>
-+          <div class="card">
-+            <label for="targetMinutes">目標総勉強時間（分）</label>
-+            <input type="number" id="targetMinutes" min="1" inputmode="numeric" placeholder="例: 300" />
-+            <button id="saveGoalBtn" class="primary">目標を保存</button>
-+            <p id="goalMessage" class="message" aria-live="polite"></p>
-+          </div>
-+        </section>
-+
-+        <!-- 2. 記録画面 -->
-+        <section id="record-screen" class="screen" aria-labelledby="record-title">
-+          <h2 id="record-title">学習記録</h2>
-+          <div class="card">
-+            <p>科目を選択してください</p>
-+            <div class="subject-grid" role="group" aria-label="科目選択">
-+              <button class="subject-btn" data-subject="国語">国語</button>
-+              <button class="subject-btn" data-subject="数学">数学</button>
-+              <button class="subject-btn" data-subject="英語">英語</button>
-+              <button class="subject-btn" data-subject="理科">理科</button>
-+              <button class="subject-btn" data-subject="社会">社会</button>
-+            </div>
-+            <div class="timer-actions">
-+              <button id="startBtn" class="primary">開始</button>
-+              <button id="endBtn" class="danger" disabled>終了</button>
-+            </div>
-+            <p id="recordStatus" class="message" aria-live="polite"></p>
-+          </div>
-+        </section>
-+
-+        <!-- 3. 進捗・可視化画面 -->
-+        <section id="progress-screen" class="screen" aria-labelledby="progress-title">
-+          <h2 id="progress-title">進捗・可視化</h2>
-+          <div class="stats-grid">
-+            <article class="card stat">
-+              <h3>1週間の合計時間</h3>
-+              <p><span id="weeklyTotal">0</span> 分</p>
-+            </article>
-+            <article class="card stat">
-+              <h3>目標までの残り時間</h3>
-+              <p><span id="remainingMinutes">0</span> 分</p>
-+            </article>
-+          </div>
-+
-+          <div class="card chart-card">
-+            <h3>科目別学習時間（直近1週間）</h3>
-+            <div class="chart-wrap">
-+              <canvas id="subjectChart" aria-label="科目別棒グラフ"></canvas>
-+            </div>
-+            <p id="chartWarning" class="message"></p>
-+          </div>
-+        </section>
-+      </main>
-+    </div>
-+
-+    <script>
-+      // LocalStorage のキー名
-+      const STORAGE_KEY = "studyTrackerData";
-+      // アプリで扱う科目一覧
-+      const SUBJECTS = ["国語", "数学", "英語", "理科", "社会"];
-+
-+      // 初期データ構造
-+      const defaultData = {
-+        records: [],
-+        goal: { mode: "weekly", targetMinutes: 300 },
-+      };
-+
-+      // 現在の記録セッション（開始時刻・科目）
-+      const currentSession = { subject: null, startAt: null };
-+      let subjectChart = null;
-+
-+      // 保存データを読み込む（不正時は初期値）
-+      function loadData() {
-+        try {
-+          const raw = localStorage.getItem(STORAGE_KEY);
-+          if (!raw) return structuredClone(defaultData);
-+          const parsed = JSON.parse(raw);
-+          return {
-+            records: Array.isArray(parsed.records) ? parsed.records : [],
-+            goal: {
-+              mode: "weekly",
-+              targetMinutes: Number(parsed?.goal?.targetMinutes) > 0 ? Number(parsed.goal.targetMinutes) : 300,
-+            },
-+          };
-+        } catch {
-+          return structuredClone(defaultData);
-+        }
-+      }
-+
-+      // データを LocalStorage に保存
-+      function saveData(data) {
-+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-+      }
-+
-+      // YYYY-MM-DD 形式の日付文字列を作る
-+      function formatDate(date) {
-+        const y = date.getFullYear();
-+        const m = String(date.getMonth() + 1).padStart(2, "0");
-+        const d = String(date.getDate()).padStart(2, "0");
-+        return `${y}-${m}-${d}`;
-+      }
-+
-+      // 直近7日間（今日含む）の記録を抽出
-+      function filterLast7Days(records) {
-+        const now = new Date();
-+        const start = new Date(now);
-+        start.setHours(0, 0, 0, 0);
-+        start.setDate(start.getDate() - 6);
-+        return records.filter((record) => {
-+          const recDate = new Date(`${record.date}T00:00:00`);
-+          return recDate >= start && recDate <= now;
-+        });
-+      }
-+
-+      // 科目別合計時間を作る
-+      function calcSubjectTotals(records) {
-+        const totals = Object.fromEntries(SUBJECTS.map((subject) => [subject, 0]));
-+        records.forEach((record) => {
-+          if (totals[record.subject] !== undefined) {
-+            totals[record.subject] += Number(record.duration) || 0;
-+          }
-+        });
-+        return totals;
-+      }
-+
-+      // タブ切り替え（SPA風）
-+      function setupTabs() {
-+        const tabButtons = document.querySelectorAll(".tab-btn");
-+        const screens = document.querySelectorAll(".screen");
-+
-+        tabButtons.forEach((btn) => {
-+          btn.addEventListener("click", () => {
-+            tabButtons.forEach((b) => b.classList.remove("active"));
-+            screens.forEach((s) => s.classList.remove("active"));
-+            btn.classList.add("active");
-+            const targetId = btn.dataset.screen;
-+            document.getElementById(targetId).classList.add("active");
-+
-+            if (targetId === "progress-screen") updateProgressView();
-+          });
-+        });
-+      }
-+
-+      // 目標値欄を初期化
-+      function initGoalView() {
-+        const data = loadData();
-+        document.getElementById("targetMinutes").value = data.goal.targetMinutes;
-+      }
-+
-+      // 目標保存イベント
-+      function setupGoalActions() {
-+        const saveBtn = document.getElementById("saveGoalBtn");
-+        const input = document.getElementById("targetMinutes");
-+        const message = document.getElementById("goalMessage");
-+
-+        saveBtn.addEventListener("click", () => {
-+          const value = Number(input.value);
-+          if (!Number.isFinite(value) || value <= 0) {
-+            message.textContent = "1以上の数値を入力してください。";
-+            return;
-+          }
-+
-+          const data = loadData();
-+          data.goal = { mode: "weekly", targetMinutes: Math.round(value) };
-+          saveData(data);
-+          message.textContent = `目標 ${Math.round(value)} 分を保存しました。`;
-+          updateProgressView();
-+        });
-+      }
-+
-+      // 記録画面イベント
-+      function setupRecordActions() {
-+        const subjectButtons = document.querySelectorAll(".subject-btn");
-+        const startBtn = document.getElementById("startBtn");
-+        const endBtn = document.getElementById("endBtn");
-+        const status = document.getElementById("recordStatus");
-+
-+        // 科目選択
-+        subjectButtons.forEach((btn) => {
-+          btn.addEventListener("click", () => {
-+            subjectButtons.forEach((b) => b.classList.remove("active"));
-+            btn.classList.add("active");
-+            currentSession.subject = btn.dataset.subject;
-+            status.textContent = `科目「${currentSession.subject}」を選択しました。`;
-+          });
-+        });
-+
-+        // 開始時刻を記録
-+        startBtn.addEventListener("click", () => {
-+          if (!currentSession.subject) {
-+            status.textContent = "先に科目を選択してください。";
-+            return;
-+          }
-+
-+          currentSession.startAt = new Date();
-+          startBtn.disabled = true;
-+          endBtn.disabled = false;
-+          status.textContent = `開始時刻を記録しました（${currentSession.startAt.toLocaleTimeString("ja-JP")}）。`;
-+        });
-+
-+        // 終了時刻から学習時間（分）を計算して保存
-+        endBtn.addEventListener("click", () => {
-+          if (!currentSession.startAt || !currentSession.subject) {
-+            status.textContent = "開始してから終了してください。";
-+            return;
-+          }
-+
-+          const endAt = new Date();
-+          const durationMinutes = Math.max(1, Math.round((endAt - currentSession.startAt) / 60000));
-+          const data = loadData();
-+
-+          data.records.push({
-+            date: formatDate(endAt),
-+            subject: currentSession.subject,
-+            duration: durationMinutes,
-+          });
-+          saveData(data);
-+
-+          status.textContent = `「${currentSession.subject}」を ${durationMinutes} 分記録しました。`;
-+          currentSession.startAt = null;
-+          startBtn.disabled = false;
-+          endBtn.disabled = true;
-+          updateProgressView();
-+        });
-+      }
-+
-+      // 進捗表示の更新
-+      function updateProgressView() {
-+        const data = loadData();
-+        const recentRecords = filterLast7Days(data.records);
-+        const weeklyTotal = recentRecords.reduce((sum, record) => sum + (Number(record.duration) || 0), 0);
-+        const remaining = Math.max(0, data.goal.targetMinutes - weeklyTotal);
-+        const subjectTotals = calcSubjectTotals(recentRecords);
-+
-+        document.getElementById("weeklyTotal").textContent = String(weeklyTotal);
-+        document.getElementById("remainingMinutes").textContent = String(remaining);
-+
-+        renderChart(subjectTotals);
-+      }
-+
-+      // 棒グラフ描画
-+      function renderChart(subjectTotals) {
-+        const ctx = document.getElementById("subjectChart");
-+        const warning = document.getElementById("chartWarning");
-+        if (!ctx) return;
-+
-+        // CDN遮断などでChart.jsが読み込めない環境向けフォールバック
-+        if (typeof Chart === "undefined") {
-+          warning.textContent = "グラフライブラリを読み込めなかったため、棒グラフを表示できません。";
-+          return;
-+        }
-+        warning.textContent = "";
-+
-+        const labels = SUBJECTS;
-+        const values = SUBJECTS.map((s) => subjectTotals[s]);
-+
-+        if (subjectChart) subjectChart.destroy();
-+
-+        subjectChart = new Chart(ctx, {
-+          type: "bar",
-+          data: {
-+            labels,
-+            datasets: [{
-+              label: "学習時間（分）",
-+              data: values,
-+              backgroundColor: "rgba(47, 111, 237, 0.7)",
-+              borderColor: "rgba(47, 111, 237, 1)",
-+              borderWidth: 1,
-+              borderRadius: 6,
-+            }],
-+          },
-+          options: {
-+            responsive: true,
-+            maintainAspectRatio: false,
-+            scales: {
-+              y: { beginAtZero: true, ticks: { stepSize: 10 } },
-+            },
-+          },
-+        });
-+      }
-+
-+      // 初期化
-+      function init() {
-+        if (!localStorage.getItem(STORAGE_KEY)) {
-+          saveData(structuredClone(defaultData));
-+        }
-+        setupTabs();
-+        initGoalView();
-+        setupGoalActions();
-+        setupRecordActions();
-+        updateProgressView();
-+      }
-+
-+      window.addEventListener("DOMContentLoaded", init);
-+    </script>
-+  </body>
-+</html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>StudyLog — 学習記録</title>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <!-- Google Fonts: Noto Sans JP (本文) + Lexend (数字・英語見出し) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Lexend:wght@400;600;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================================
+       CSS 変数 & リセット
+    ============================================================ */
+    :root {
+      --bg:        #0e0f14;
+      --surface:   #16181f;
+      --surface2:  #1e2029;
+      --border:    #2a2d3a;
+      --accent:    #6ee7b7;   /* ミントグリーン */
+      --accent2:   #818cf8;   /* インディゴ */
+      --accent3:   #fbbf24;   /* アンバー */
+      --danger:    #f87171;
+      --text:      #e2e8f0;
+      --text-sub:  #8892a4;
+      --radius:    16px;
+      --radius-sm: 10px;
+      --tab-h:     60px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    /* ============================================================
+       レイアウト
+    ============================================================ */
+    #app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* コンテンツ領域 */
+    .screen {
+      display: none;
+      flex: 1;
+      padding: 24px 16px calc(var(--tab-h) + 24px);
+      overflow-y: auto;
+      animation: fadeUp .3s ease both;
+    }
+    .screen.active { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================================
+       ボトムナビゲーション
+    ============================================================ */
+    #nav {
+      position: fixed;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      height: var(--tab-h);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 100;
+    }
+
+    .nav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border: none;
+      background: none;
+      color: var(--text-sub);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 10px;
+      cursor: pointer;
+      transition: color .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-btn svg { width: 22px; height: 22px; transition: transform .2s; }
+    .nav-btn.active { color: var(--accent); }
+    .nav-btn.active svg { transform: scale(1.15); }
+
+    /* ============================================================
+       共通コンポーネント
+    ============================================================ */
+    .page-title {
+      font-family: 'Lexend', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 24px;
+      letter-spacing: -.02em;
+    }
+    .page-title span { color: var(--accent); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin-bottom: 12px;
+    }
+
+    /* フォーム */
+    input[type="number"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      color: var(--text);
+      font-size: 20px;
+      font-family: 'Lexend', sans-serif;
+      font-weight: 600;
+      outline: none;
+      transition: border-color .2s;
+      -webkit-appearance: none;
+    }
+    input[type="number"]:focus {
+      border-color: var(--accent);
+    }
+    input[type="number"]::placeholder { color: var(--text-sub); }
+
+    /* プライマリボタン */
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: #0e0f14;
+      font-family: 'Lexend', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .15s, opacity .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-primary:active { transform: scale(.97); opacity: .85; }
+
+    /* 二次ボタン */
+    .btn-secondary {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface2);
+      color: var(--text);
+      font-family: 'Lexend', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color .2s, transform .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-secondary:active { transform: scale(.97); }
+
+    /* トースト通知 */
+    #toast {
+      position: fixed;
+      bottom: calc(var(--tab-h) + 16px);
+      left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--accent);
+      color: #0e0f14;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 20px;
+      border-radius: 999px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s, transform .3s;
+      z-index: 200;
+      white-space: nowrap;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ============================================================
+       1. 目標設定画面
+    ============================================================ */
+    .goal-hero {
+      background: linear-gradient(135deg, #1a2a3a 0%, var(--surface) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .goal-hero .hero-num {
+      font-family: 'Lexend', sans-serif;
+      font-size: 52px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .goal-hero .hero-unit { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
+
+    .info-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-bottom: 20px;
+    }
+    .info-chip .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent2);
+    }
+
+    /* ============================================================
+       2. 記録画面
+    ============================================================ */
+    /* 科目セレクタ */
+    .subject-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .subject-btn {
+      aspect-ratio: 1;
+      border: 2px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface2);
+      color: var(--text-sub);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .subject-btn.selected {
+      border-color: var(--accent);
+      background: rgba(110,231,183,.12);
+      color: var(--accent);
+    }
+
+    /* 科目カラー */
+    .subject-btn[data-subject="国語"].selected  { border-color:#f87171; background:rgba(248,113,113,.12); color:#f87171; }
+    .subject-btn[data-subject="数学"].selected  { border-color:#818cf8; background:rgba(129,140,248,.12); color:#818cf8; }
+    .subject-btn[data-subject="英語"].selected  { border-color:#6ee7b7; background:rgba(110,231,183,.12); color:#6ee7b7; }
+    .subject-btn[data-subject="理科"].selected  { border-color:#fbbf24; background:rgba(251,191,36,.12);  color:#fbbf24; }
+    .subject-btn[data-subject="社会"].selected  { border-color:#c084fc; background:rgba(192,132,252,.12); color:#c084fc; }
+
+    /* タイマー表示 */
+    .timer-display {
+      text-align: center;
+      padding: 32px 0 20px;
+    }
+    .timer-clock {
+      font-family: 'Lexend', sans-serif;
+      font-size: 64px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      color: var(--text);
+      line-height: 1;
+    }
+    .timer-clock.running { color: var(--accent); }
+    .timer-status {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-top: 8px;
+    }
+
+    /* 開始・終了ボタン行 */
+    .record-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .btn-start {
+      padding: 18px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: #0e0f14;
+      font-family: 'Lexend', sans-serif;
+      font-size: 16px; font-weight: 800;
+      cursor: pointer;
+      transition: transform .15s, opacity .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-stop {
+      padding: 18px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: var(--danger);
+      color: #fff;
+      font-family: 'Lexend', sans-serif;
+      font-size: 16px; font-weight: 800;
+      cursor: pointer;
+      transition: transform .15s, opacity .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-start:active, .btn-stop:active { transform: scale(.96); opacity: .85; }
+    .btn-start:disabled, .btn-stop:disabled {
+      opacity: .3; cursor: not-allowed; transform: none;
+    }
+
+    /* 最近の記録リスト */
+    .record-list { list-style: none; }
+    .record-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .record-item:last-child { border-bottom: none; }
+    .record-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .record-info { flex: 1; }
+    .record-subject { font-weight: 700; font-size: 14px; }
+    .record-date { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+    .record-dur {
+      font-family: 'Lexend', sans-serif;
+      font-size: 15px; font-weight: 700;
+      color: var(--text-sub);
+    }
+
+    .empty-msg {
+      text-align: center;
+      color: var(--text-sub);
+      font-size: 13px;
+      padding: 24px 0;
+    }
+
+    /* ============================================================
+       3. 進捗画面
+    ============================================================ */
+    /* 進捗リング (SVG) */
+    .progress-ring-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 0 20px;
+    }
+    .ring-container { position: relative; width: 160px; height: 160px; }
+    .ring-bg, .ring-fg {
+      fill: none;
+      stroke-width: 12;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    .ring-bg { stroke: var(--surface2); }
+    .ring-fg {
+      stroke: var(--accent);
+      stroke-linecap: round;
+      transition: stroke-dashoffset .6s cubic-bezier(.4,0,.2,1);
+    }
+    .ring-text {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .ring-pct {
+      font-family: 'Lexend', sans-serif;
+      font-size: 30px; font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .ring-label { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+    }
+    .stat-val {
+      font-family: 'Lexend', sans-serif;
+      font-size: 26px; font-weight: 800;
+      line-height: 1;
+    }
+    .stat-unit { font-size: 13px; font-weight: 400; color: var(--text-sub); margin-left: 3px; }
+    .stat-val.good { color: var(--accent); }
+    .stat-val.warn { color: var(--accent3); }
+    .stat-val.bad  { color: var(--danger); }
+
+    /* グラフラッパー */
+    .chart-wrap {
+      position: relative;
+      height: 220px;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============================================================
+       画面 1: 目標設定
+  ============================================================ -->
+  <section id="screen-goal" class="screen active">
+    <h1 class="page-title">目標<span>設定</span></h1>
+
+    <!-- 現在の目標表示 -->
+    <div class="goal-hero">
+      <div class="hero-num" id="goal-display-min">---</div>
+      <div class="hero-unit">現在の週間目標（分）</div>
+    </div>
+
+    <div class="info-chip">
+      <span class="dot"></span>
+      モード：直近1週間
+    </div>
+
+    <div class="card">
+      <div class="card-label">週間目標時間を設定</div>
+      <!-- 目標分数入力 -->
+      <input
+        type="number"
+        id="goal-input"
+        placeholder="例：300（5時間）"
+        min="1" max="9999"
+        inputmode="numeric"
+      />
+      <p style="font-size:12px;color:var(--text-sub);margin:8px 0 16px;">
+        ※ 1時間 = 60分
+      </p>
+      <!-- 保存ボタン -->
+      <button class="btn-primary" id="btn-save-goal">保存する</button>
+    </div>
+
+    <!-- よくある目標値クイック選択 -->
+    <div class="card">
+      <div class="card-label">クイック設定</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+        <button class="btn-secondary quick-goal" data-min="120">2h</button>
+        <button class="btn-secondary quick-goal" data-min="300">5h</button>
+        <button class="btn-secondary quick-goal" data-min="420">7h</button>
+        <button class="btn-secondary quick-goal" data-min="600">10h</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       画面 2: 学習記録
+  ============================================================ -->
+  <section id="screen-record" class="screen">
+    <h1 class="page-title">学習<span>記録</span></h1>
+
+    <div class="card">
+      <div class="card-label">科目を選ぶ</div>
+      <!-- 科目選択ボタン -->
+      <div class="subject-grid">
+        <button class="subject-btn" data-subject="国語">国語</button>
+        <button class="subject-btn" data-subject="数学">数学</button>
+        <button class="subject-btn" data-subject="英語">英語</button>
+        <button class="subject-btn" data-subject="理科">理科</button>
+        <button class="subject-btn" data-subject="社会">社会</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <!-- タイマー表示 -->
+      <div class="timer-display">
+        <div class="timer-clock" id="timer-clock">00:00</div>
+        <div class="timer-status" id="timer-status">科目を選んで開始してください</div>
+      </div>
+      <!-- 開始・終了ボタン -->
+      <div class="record-actions">
+        <button class="btn-start" id="btn-start" disabled>開始</button>
+        <button class="btn-stop"  id="btn-stop"  disabled>終了</button>
+      </div>
+    </div>
+
+    <!-- 最近の記録（直近5件） -->
+    <div class="card">
+      <div class="card-label">最近の記録</div>
+      <ul class="record-list" id="recent-list">
+        <li class="empty-msg">まだ記録がありません</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       画面 3: 進捗・可視化
+  ============================================================ -->
+  <section id="screen-progress" class="screen">
+    <h1 class="page-title">進捗<span>確認</span></h1>
+
+    <!-- 達成率リング -->
+    <div class="card">
+      <div class="card-label">今週の達成率</div>
+      <div class="progress-ring-wrap">
+        <div class="ring-container">
+          <svg viewBox="0 0 160 160" width="160" height="160">
+            <circle class="ring-bg" cx="80" cy="80" r="68" />
+            <circle class="ring-fg" id="ring-fg" cx="80" cy="80" r="68"
+              stroke-dasharray="427.26"
+              stroke-dashoffset="427.26" />
+          </svg>
+          <div class="ring-text">
+            <div class="ring-pct" id="ring-pct">0%</div>
+            <div class="ring-label">達成</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 統計カード -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">今週の合計</div>
+        <div class="stat-val good" id="stat-total">0<span class="stat-unit">分</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">残り時間</div>
+        <div class="stat-val" id="stat-remain">---<span class="stat-unit">分</span></div>
+      </div>
+    </div>
+
+    <!-- 科目別棒グラフ -->
+    <div class="card">
+      <div class="card-label">科目別 集計（分）</div>
+      <div class="chart-wrap">
+        <canvas id="subject-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- 日別グラフ -->
+    <div class="card">
+      <div class="card-label">日別 推移（分）</div>
+      <div class="chart-wrap">
+        <canvas id="daily-chart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       ボトムナビ
+  ============================================================ -->
+  <nav id="nav">
+    <!-- 目標設定タブ -->
+    <button class="nav-btn active" data-target="screen-goal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+      </svg>
+      目標
+    </button>
+    <!-- 記録タブ -->
+    <button class="nav-btn" data-target="screen-record">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      記録
+    </button>
+    <!-- 進捗タブ -->
+    <button class="nav-btn" data-target="screen-progress">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      進捗
+    </button>
+  </nav>
+
+  <!-- トースト通知 -->
+  <div id="toast"></div>
+</div>
+
+<!-- ============================================================
+     JavaScript
+============================================================ -->
+<script>
+/* ================================================================
+   定数 & データ構造
+================================================================ */
+const STORAGE_KEY = 'studylog_v1'; // LocalStorage のキー
+
+/** 科目ごとの色定義 */
+const SUBJECT_COLORS = {
+  '国語': '#f87171',
+  '数学': '#818cf8',
+  '英語': '#6ee7b7',
+  '理科': '#fbbf24',
+  '社会': '#c084fc',
+};
+
+/* ================================================================
+   LocalStorage ユーティリティ
+================================================================ */
+
+/** データ全体を取得する。存在しなければ初期値を返す */
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { records: [], goal: { mode: 'weekly', targetMinutes: 300 } };
+    return JSON.parse(raw);
+  } catch (e) {
+    return { records: [], goal: { mode: 'weekly', targetMinutes: 300 } };
+  }
+}
+
+/** データ全体を保存する */
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+/* ================================================================
+   日付ユーティリティ
+================================================================ */
+
+/** Date オブジェクト → 'YYYY-MM-DD' 文字列 */
+function toDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** 直近 7 日間の日付文字列リストを新しい順で返す */
+function getWeekDates() {
+  const result = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    result.push(toDateStr(d));
+  }
+  return result;
+}
+
+/** 直近 7 日間のレコードのみフィルタして返す */
+function getWeekRecords(records) {
+  const weekDates = new Set(getWeekDates());
+  return records.filter(r => weekDates.has(r.date));
+}
+
+/* ================================================================
+   トースト通知
+================================================================ */
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+/* ================================================================
+   ナビゲーション（SPA 的画面切り替え）
+================================================================ */
+const navBtns  = document.querySelectorAll('.nav-btn');
+const screens  = document.querySelectorAll('.screen');
+
+function switchScreen(targetId) {
+  // 全画面を非表示
+  screens.forEach(s => s.classList.remove('active'));
+  navBtns.forEach(b => b.classList.remove('active'));
+
+  // 対象画面を表示
+  document.getElementById(targetId).classList.add('active');
+  document.querySelector(`.nav-btn[data-target="${targetId}"]`).classList.add('active');
+
+  // 進捗画面を表示するたびにグラフを再描画
+  if (targetId === 'screen-progress') renderProgress();
+}
+
+navBtns.forEach(btn => {
+  btn.addEventListener('click', () => switchScreen(btn.dataset.target));
+});
+
+/* ================================================================
+   1. 目標設定画面 ロジック
+================================================================ */
+
+/** 現在の目標を UI に反映する */
+function renderGoalScreen() {
+  const data = loadData();
+  document.getElementById('goal-display-min').textContent = data.goal.targetMinutes;
+  document.getElementById('goal-input').value = '';
+}
+
+/** 保存ボタン */
+document.getElementById('btn-save-goal').addEventListener('click', () => {
+  const val = parseInt(document.getElementById('goal-input').value, 10);
+  if (!val || val <= 0) {
+    showToast('正しい数値を入力してください');
+    return;
+  }
+  const data = loadData();
+  data.goal = { mode: 'weekly', targetMinutes: val };
+  saveData(data);
+  renderGoalScreen();   // 表示を更新
+  showToast(`目標を ${val} 分に設定しました！`);
+});
+
+/** クイック設定ボタン群 */
+document.querySelectorAll('.quick-goal').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const min = parseInt(btn.dataset.min, 10);
+    document.getElementById('goal-input').value = min;
+    // そのまま保存
+    document.getElementById('btn-save-goal').click();
+  });
+});
+
+/* ================================================================
+   2. 記録画面 ロジック
+================================================================ */
+let selectedSubject = null;  // 現在選択中の科目
+let startTime       = null;  // 開始時刻（Date オブジェクト）
+let timerInterval   = null;  // 経過時間カウンタ用 setInterval ID
+
+const btnStart     = document.getElementById('btn-start');
+const btnStop      = document.getElementById('btn-stop');
+const timerClock   = document.getElementById('timer-clock');
+const timerStatus  = document.getElementById('timer-status');
+
+/** 秒数を mm:ss 形式の文字列に変換 */
+function formatMMSS(sec) {
+  const m = String(Math.floor(sec / 60)).padStart(2, '0');
+  const s = String(sec % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+/** 科目ボタンのクリック処理 */
+document.querySelectorAll('.subject-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // タイマー稼働中は科目変更不可
+    if (startTime) {
+      showToast('計測中は科目を変更できません');
+      return;
+    }
+    // 選択状態の切り替え
+    document.querySelectorAll('.subject-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedSubject = btn.dataset.subject;
+
+    // 開始ボタンを有効化
+    btnStart.disabled = false;
+    timerStatus.textContent = `${selectedSubject}を勉強する準備ができました`;
+  });
+});
+
+/** 開始ボタン */
+btnStart.addEventListener('click', () => {
+  if (!selectedSubject) return;
+  startTime = new Date(); // 開始時刻を記録
+
+  // UI 更新
+  btnStart.disabled = true;
+  btnStop.disabled  = false;
+  timerClock.classList.add('running');
+  timerStatus.textContent = `${selectedSubject} — 計測中...`;
+
+  // 経過時間タイマー（毎秒更新）
+  let elapsed = 0;
+  timerClock.textContent = '00:00';
+  timerInterval = setInterval(() => {
+    elapsed++;
+    timerClock.textContent = formatMMSS(elapsed);
+  }, 1000);
+});
+
+/** 終了ボタン */
+btnStop.addEventListener('click', () => {
+  if (!startTime) return;
+
+  // 経過時間を計算（分）
+  const endTime  = new Date();
+  const durationMs  = endTime - startTime;
+  const durationMin = Math.max(1, Math.round(durationMs / 60000));
+
+  // タイマー停止
+  clearInterval(timerInterval);
+  timerInterval = null;
+
+  // LocalStorage に記録を追加
+  const data = loadData();
+  data.records.push({
+    date:     toDateStr(endTime),
+    subject:  selectedSubject,
+    duration: durationMin,
+  });
+  saveData(data);
+
+  // UI リセット
+  startTime = null;
+  btnStart.disabled = false;
+  btnStop.disabled  = true;
+  timerClock.classList.remove('running');
+  timerClock.textContent  = '00:00';
+  timerStatus.textContent = `${selectedSubject} ${durationMin}分 を記録しました！`;
+
+  showToast(`${selectedSubject} ${durationMin}分 を保存しました 🎉`);
+  renderRecentList(); // 最近の記録を更新
+});
+
+/** 直近5件の記録リストを描画する */
+function renderRecentList() {
+  const data    = loadData();
+  const recent  = data.records.slice(-5).reverse(); // 最新5件
+  const listEl  = document.getElementById('recent-list');
+
+  if (recent.length === 0) {
+    listEl.innerHTML = '<li class="empty-msg">まだ記録がありません</li>';
+    return;
+  }
+
+  listEl.innerHTML = recent.map(r => {
+    const color = SUBJECT_COLORS[r.subject] || '#8892a4';
+    return `
+      <li class="record-item">
+        <span class="record-dot" style="background:${color}"></span>
+        <div class="record-info">
+          <div class="record-subject" style="color:${color}">${r.subject}</div>
+          <div class="record-date">${r.date}</div>
+        </div>
+        <div class="record-dur">${r.duration}分</div>
+      </li>
+    `;
+  }).join('');
+}
+
+/* ================================================================
+   3. 進捗画面 ロジック
+================================================================ */
+let subjectChartInst = null; // Chart.js インスタンス（科目別）
+let dailyChartInst   = null; // Chart.js インスタンス（日別）
+
+/** 進捗画面全体を再描画する */
+function renderProgress() {
+  const data        = loadData();
+  const weekRecords = getWeekRecords(data.records);
+  const target      = data.goal.targetMinutes;
+
+  // 合計時間
+  const totalMin = weekRecords.reduce((sum, r) => sum + r.duration, 0);
+
+  // 達成率（最大100%）
+  const pct = target > 0 ? Math.min(100, Math.round(totalMin / target * 100)) : 0;
+
+  // ① 達成率リング更新
+  const circumference = 427.26; // 2π × 68
+  const offset = circumference * (1 - pct / 100);
+  document.getElementById('ring-fg').style.strokeDashoffset = offset;
+  document.getElementById('ring-pct').textContent = `${pct}%`;
+
+  // ② 統計カード更新
+  const totalEl  = document.getElementById('stat-total');
+  const remainEl = document.getElementById('stat-remain');
+  totalEl.innerHTML  = `${totalMin}<span class="stat-unit">分</span>`;
+  totalEl.className  = 'stat-val good';
+
+  const remain = target - totalMin;
+  if (target <= 0) {
+    remainEl.innerHTML = `---<span class="stat-unit">分</span>`;
+    remainEl.className = 'stat-val';
+  } else if (remain <= 0) {
+    remainEl.innerHTML = `達成!<span class="stat-unit"></span>`;
+    remainEl.className = 'stat-val good';
+  } else {
+    remainEl.innerHTML = `${remain}<span class="stat-unit">分</span>`;
+    remainEl.className = `stat-val ${remain < target * 0.3 ? 'warn' : ''}`;
+  }
+
+  // ③ 科目別棒グラフ
+  const subjects = Object.keys(SUBJECT_COLORS);
+  const subjectTotals = subjects.map(sub =>
+    weekRecords.filter(r => r.subject === sub).reduce((s, r) => s + r.duration, 0)
+  );
+
+  const chartDefaults = {
+    color: '#8892a4',
+    borderRadius: 8,
+    borderSkipped: false,
+  };
+
+  if (subjectChartInst) subjectChartInst.destroy();
+  subjectChartInst = new Chart(
+    document.getElementById('subject-chart').getContext('2d'),
+    {
+      type: 'bar',
+      data: {
+        labels: subjects,
+        datasets: [{
+          label: '学習時間（分）',
+          data: subjectTotals,
+          backgroundColor: subjects.map(s => SUBJECT_COLORS[s] + 'cc'),
+          borderColor:     subjects.map(s => SUBJECT_COLORS[s]),
+          borderWidth: 2,
+          ...chartDefaults,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e2029',
+            borderColor: '#2a2d3a',
+            borderWidth: 1,
+            titleColor: '#e2e8f0',
+            bodyColor: '#8892a4',
+            callbacks: {
+              label: ctx => ` ${ctx.parsed.y} 分`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: '#8892a4', font: { family: 'Noto Sans JP', size: 12 } },
+          },
+          y: {
+            grid: { color: '#2a2d3a', drawBorder: false },
+            ticks: {
+              color: '#8892a4',
+              font: { family: 'Lexend', size: 11 },
+              callback: v => `${v}分`,
+            },
+            beginAtZero: true,
+          },
+        },
+      },
+    }
+  );
+
+  // ④ 日別折れ線グラフ
+  const weekDates = getWeekDates();
+  const dailyTotals = weekDates.map(d =>
+    weekRecords.filter(r => r.date === d).reduce((s, r) => s + r.duration, 0)
+  );
+  const dayLabels = weekDates.map(d => {
+    const [, m, day] = d.split('-');
+    return `${parseInt(m)}/${parseInt(day)}`;
+  });
+
+  if (dailyChartInst) dailyChartInst.destroy();
+  dailyChartInst = new Chart(
+    document.getElementById('daily-chart').getContext('2d'),
+    {
+      type: 'bar',
+      data: {
+        labels: dayLabels,
+        datasets: [{
+          label: '学習時間（分）',
+          data: dailyTotals,
+          backgroundColor: '#818cf833',
+          borderColor: '#818cf8',
+          borderWidth: 2,
+          borderRadius: 8,
+          borderSkipped: false,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e2029',
+            borderColor: '#2a2d3a',
+            borderWidth: 1,
+            titleColor: '#e2e8f0',
+            bodyColor: '#8892a4',
+            callbacks: { label: ctx => ` ${ctx.parsed.y} 分` },
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: '#8892a4', font: { family: 'Lexend', size: 11 } },
+          },
+          y: {
+            grid: { color: '#2a2d3a' },
+            ticks: {
+              color: '#8892a4',
+              font: { family: 'Lexend', size: 11 },
+              callback: v => `${v}分`,
+            },
+            beginAtZero: true,
+          },
+        },
+      },
+    }
+  );
+}
+
+/* ================================================================
+   アプリ起動時の初期化
+================================================================ */
+(function init() {
+  renderGoalScreen();   // 目標画面を初期表示
+  renderRecentList();   // 記録一覧を初期表示
+})();
+</script>
+</body>
+</html>
