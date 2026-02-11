@@ -1,1 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>学習時間トラッカー</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- Chart.js を CDN から読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <h1>学習時間トラッカー</h1>
+        <p>1週間の学習時間を目標設定・記録・可視化</p>
+      </header>
 
+      <!-- SPA 風の画面切り替え用ナビゲーション -->
+      <nav class="tab-nav" aria-label="画面切り替え">
+        <button class="tab-btn active" data-screen="goal-screen">目標設定</button>
+        <button class="tab-btn" data-screen="record-screen">学習記録</button>
+        <button class="tab-btn" data-screen="progress-screen">進捗確認</button>
+      </nav>
+
+      <main>
+        <!-- 1. 目標時間設定画面 -->
+        <section id="goal-screen" class="screen active" aria-labelledby="goal-title">
+          <h2 id="goal-title">目標時間設定（直近1週間）</h2>
+          <div class="card">
+            <label for="targetMinutes">目標総勉強時間（分）</label>
+            <input
+              type="number"
+              id="targetMinutes"
+              min="1"
+              inputmode="numeric"
+              placeholder="例: 300"
+            />
+            <button id="saveGoalBtn" class="primary">目標を保存</button>
+            <p id="goalMessage" class="message" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <!-- 2. 記録画面 -->
+        <section id="record-screen" class="screen" aria-labelledby="record-title">
+          <h2 id="record-title">学習記録</h2>
+          <div class="card">
+            <p>科目を選択してください</p>
+            <div class="subject-grid" role="group" aria-label="科目選択">
+              <button class="subject-btn" data-subject="国語">国語</button>
+              <button class="subject-btn" data-subject="数学">数学</button>
+              <button class="subject-btn" data-subject="英語">英語</button>
+              <button class="subject-btn" data-subject="理科">理科</button>
+              <button class="subject-btn" data-subject="社会">社会</button>
+            </div>
+
+            <div class="timer-actions">
+              <button id="startBtn" class="primary">開始</button>
+              <button id="endBtn" class="danger" disabled>終了</button>
+            </div>
+            <p id="recordStatus" class="message" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <!-- 3. 進捗・可視化画面 -->
+        <section id="progress-screen" class="screen" aria-labelledby="progress-title">
+          <h2 id="progress-title">進捗・可視化</h2>
+          <div class="stats-grid">
+            <article class="card stat">
+              <h3>1週間の合計時間</h3>
+              <p><span id="weeklyTotal">0</span> 分</p>
+            </article>
+            <article class="card stat">
+              <h3>目標までの残り時間</h3>
+              <p><span id="remainingMinutes">0</span> 分</p>
+            </article>
+          </div>
+
+          <div class="card chart-card">
+            <h3>科目別学習時間（直近1週間）</h3>
+            <canvas id="subjectChart" aria-label="科目別棒グラフ"></canvas>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
