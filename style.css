@@ -1,0 +1,207 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/style.css b/style.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..f0937280b106d6cd8e12a79d5c40a977d2e3256a
+--- /dev/null
++++ b/style.css
+@@ -0,0 +1,197 @@
++:root {
++  --bg: #f4f6fb;
++  --card: #ffffff;
++  --text: #222;
++  --muted: #666;
++  --primary: #2f6fed;
++  --primary-dark: #1f54bf;
++  --danger: #d64545;
++  --danger-dark: #aa3030;
++  --border: #dfe4ef;
++  --shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
++}
++
++* {
++  box-sizing: border-box;
++}
++
++body {
++  margin: 0;
++  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
++  background: var(--bg);
++  color: var(--text);
++  line-height: 1.5;
++}
++
++.app {
++  max-width: 720px;
++  margin: 0 auto;
++  padding: 16px;
++}
++
++.app-header h1 {
++  margin: 0;
++  font-size: 1.6rem;
++}
++
++.app-header p {
++  margin: 8px 0 0;
++  color: var(--muted);
++}
++
++.tab-nav {
++  display: grid;
++  grid-template-columns: repeat(3, 1fr);
++  gap: 8px;
++  margin: 20px 0;
++}
++
++.tab-btn {
++  border: 1px solid var(--border);
++  background: #fff;
++  border-radius: 10px;
++  padding: 10px 8px;
++  font-size: 0.95rem;
++  cursor: pointer;
++}
++
++.tab-btn.active {
++  border-color: var(--primary);
++  color: var(--primary);
++  font-weight: 700;
++}
++
++.screen {
++  display: none;
++}
++
++.screen.active {
++  display: block;
++}
++
++.card {
++  background: var(--card);
++  border-radius: 14px;
++  box-shadow: var(--shadow);
++  border: 1px solid var(--border);
++  padding: 16px;
++  margin-bottom: 14px;
++}
++
++label {
++  display: block;
++  margin-bottom: 8px;
++  font-weight: 700;
++}
++
++input[type="number"] {
++  width: 100%;
++  padding: 12px;
++  border: 1px solid #cfd7ea;
++  border-radius: 10px;
++  font-size: 1rem;
++  margin-bottom: 12px;
++}
++
++button {
++  border: none;
++  border-radius: 10px;
++  padding: 12px 14px;
++  font-size: 1rem;
++  cursor: pointer;
++}
++
++button:disabled {
++  cursor: not-allowed;
++  opacity: 0.55;
++}
++
++.primary {
++  background: var(--primary);
++  color: #fff;
++}
++
++.primary:hover {
++  background: var(--primary-dark);
++}
++
++.danger {
++  background: var(--danger);
++  color: #fff;
++}
++
++.danger:hover {
++  background: var(--danger-dark);
++}
++
++.subject-grid {
++  display: grid;
++  grid-template-columns: repeat(2, 1fr);
++  gap: 8px;
++  margin-bottom: 14px;
++}
++
++.subject-btn {
++  background: #eef3ff;
++  border: 1px solid #c6d5f9;
++}
++
++.subject-btn.active {
++  background: #d8e5ff;
++  border-color: var(--primary);
++  color: #1744a1;
++  font-weight: 700;
++}
++
++.timer-actions {
++  display: grid;
++  grid-template-columns: 1fr 1fr;
++  gap: 8px;
++}
++
++.message {
++  min-height: 1.3em;
++  margin-top: 10px;
++  color: #34405f;
++  font-size: 0.95rem;
++}
++
++.stats-grid {
++  display: grid;
++  grid-template-columns: 1fr 1fr;
++  gap: 10px;
++}
++
++.stat h3 {
++  margin: 0;
++  font-size: 1rem;
++}
++
++.stat p {
++  margin: 8px 0 0;
++  font-size: 1.3rem;
++  font-weight: 700;
++}
++
++.chart-card {
++  padding-bottom: 8px;
++}
++
++@media (max-width: 560px) {
++  .app-header h1 {
++    font-size: 1.35rem;
++  }
++
++  .tab-btn {
++    font-size: 0.88rem;
++    padding: 9px 4px;
++  }
++
++  .stats-grid {
++    grid-template-columns: 1fr;
++  }
++
++  .subject-grid {
++    grid-template-columns: 1fr;
++  }
++}
+ 
+EOF
+)
