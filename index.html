@@ -762,15 +762,23 @@ document.querySelectorAll('.quick-goal').forEach(btn => {
 
 /* ================================================================
    2. 記録画面 ロジック
+   ★ スリープ対応:
+      - 開始時刻(Unix ms)を localStorage に保存し、ページ再読み込み後も復元
+      - 表示は setInterval のカウントではなく「現在時刻 - 開始時刻」の差分で計算
+        → スリープ中に setInterval が止まっても、復帰後に正確な時間へ即補正
+      - visibilitychange イベントで画面復帰を検知して即時再描画
 ================================================================ */
-let selectedSubject = null;  // 現在選択中の科目
-let startTime       = null;  // 開始時刻（Date オブジェクト）
-let timerInterval   = null;  // 経過時間カウンタ用 setInterval ID
 
-const btnStart     = document.getElementById('btn-start');
-const btnStop      = document.getElementById('btn-stop');
-const timerClock   = document.getElementById('timer-clock');
-const timerStatus  = document.getElementById('timer-status');
+// LocalStorage のセッション用キー（タイマー稼働中のみ保存）
+const TIMER_SESSION_KEY = 'studylog_timer_session';
+
+let selectedSubject = null;  // 現在選択中の科目
+let timerInterval   = null;  // 表示更新用 setInterval ID
+
+const btnStart    = document.getElementById('btn-start');
+const btnStop     = document.getElementById('btn-stop');
+const timerClock  = document.getElementById('timer-clock');
+const timerStatus = document.getElementById('timer-status');
 
 /** 秒数を mm:ss 形式の文字列に変換 */
 function formatMMSS(sec) {
@@ -779,20 +787,76 @@ function formatMMSS(sec) {
   return `${m}:${s}`;
 }
 
+/**
+ * タイマーセッションを localStorage に保存する
+ * スリープ・ページリロード後も開始時刻を復元できるようにする
+ */
+function saveTimerSession(subject, startMs) {
+  localStorage.setItem(TIMER_SESSION_KEY, JSON.stringify({ subject, startMs }));
+}
+
+/** タイマーセッションを削除する */
+function clearTimerSession() {
+  localStorage.removeItem(TIMER_SESSION_KEY);
+}
+
+/** タイマーセッションを読み込む。存在しなければ null を返す */
+function loadTimerSession() {
+  try {
+    const raw = localStorage.getItem(TIMER_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+/**
+ * タイマーの表示を「現在時刻 - 開始時刻」の差分で更新する
+ * setInterval のズレやスリープからの復帰に関係なく常に正確な値を表示する
+ */
+function tickTimer(startMs) {
+  const elapsed = Math.floor((Date.now() - startMs) / 1000);
+  timerClock.textContent = formatMMSS(elapsed);
+}
+
+/**
+ * タイマーを開始する（内部処理）
+ * @param {string} subject  - 科目名
+ * @param {number} startMs  - 開始時刻（Unix ミリ秒）
+ */
+function startTimerUI(subject, startMs) {
+  selectedSubject = subject;
+
+  // UI 更新
+  btnStart.disabled = true;
+  btnStop.disabled  = false;
+  timerClock.classList.add('running');
+  timerStatus.textContent = `${subject} — 計測中...`;
+
+  // 科目ボタンの選択状態を反映
+  document.querySelectorAll('.subject-btn').forEach(b => {
+    b.classList.toggle('selected', b.dataset.subject === subject);
+  });
+
+  // 即時表示（スリープ復帰時のカクつきを防ぐ）
+  tickTimer(startMs);
+
+  // 毎秒 tick（setInterval はあくまで「表示更新トリガー」として使う）
+  // 実際の経過秒は Date.now() との差分で計算するためズレが起きない
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => tickTimer(startMs), 1000);
+}
+
 /** 科目ボタンのクリック処理 */
 document.querySelectorAll('.subject-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     // タイマー稼働中は科目変更不可
-    if (startTime) {
+    if (loadTimerSession()) {
       showToast('計測中は科目を変更できません');
       return;
     }
-    // 選択状態の切り替え
     document.querySelectorAll('.subject-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     selectedSubject = btn.dataset.subject;
 
-    // 開始ボタンを有効化
     btnStart.disabled = false;
     timerStatus.textContent = `${selectedSubject}を勉強する準備ができました`;
   });
@@ -801,55 +865,72 @@ document.querySelectorAll('.subject-btn').forEach(btn => {
 /** 開始ボタン */
 btnStart.addEventListener('click', () => {
   if (!selectedSubject) return;
-  startTime = new Date(); // 開始時刻を記録
 
-  // UI 更新
-  btnStart.disabled = true;
-  btnStop.disabled  = false;
-  timerClock.classList.add('running');
-  timerStatus.textContent = `${selectedSubject} — 計測中...`;
+  const startMs = Date.now(); // 開始時刻を Unix ms で記録
 
-  // 経過時間タイマー（毎秒更新）
-  let elapsed = 0;
-  timerClock.textContent = '00:00';
-  timerInterval = setInterval(() => {
-    elapsed++;
-    timerClock.textContent = formatMMSS(elapsed);
-  }, 1000);
+  // ★ localStorage にセッション保存（スリープ・リロード対策）
+  saveTimerSession(selectedSubject, startMs);
+
+  startTimerUI(selectedSubject, startMs);
 });
 
 /** 終了ボタン */
 btnStop.addEventListener('click', () => {
-  if (!startTime) return;
+  const session = loadTimerSession();
+  if (!session) return;
 
-  // 経過時間を計算（分）
-  const endTime  = new Date();
-  const durationMs  = endTime - startTime;
+  // ★ 開始時刻は localStorage から取得 → setInterval のズレに左右されない正確な計算
+  const durationMs  = Date.now() - session.startMs;
   const durationMin = Math.max(1, Math.round(durationMs / 60000));
+  const endTime     = new Date();
 
   // タイマー停止
   clearInterval(timerInterval);
   timerInterval = null;
 
+  // ★ セッション削除
+  clearTimerSession();
+
   // LocalStorage に記録を追加
   const data = loadData();
   data.records.push({
     date:     toDateStr(endTime),
-    subject:  selectedSubject,
+    subject:  session.subject,
     duration: durationMin,
   });
   saveData(data);
 
   // UI リセット
-  startTime = null;
+  selectedSubject = null;
   btnStart.disabled = false;
   btnStop.disabled  = true;
   timerClock.classList.remove('running');
   timerClock.textContent  = '00:00';
-  timerStatus.textContent = `${selectedSubject} ${durationMin}分 を記録しました！`;
+  timerStatus.textContent = `${session.subject} ${durationMin}分 を記録しました！`;
 
-  showToast(`${selectedSubject} ${durationMin}分 を保存しました 🎉`);
-  renderRecentList(); // 最近の記録を更新
+  // 科目ボタンの選択解除
+  document.querySelectorAll('.subject-btn').forEach(b => b.classList.remove('selected'));
+
+  showToast(`${session.subject} ${durationMin}分 を保存しました 🎉`);
+  renderRecentList();
+});
+
+/**
+ * ★ visibilitychange イベント：スリープ・タブ切り替えからの復帰を検知
+ * スリープ中は setInterval が停止するが、復帰した瞬間に
+ * Date.now() ベースで正確な時間を再計算・再描画する
+ */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    const session = loadTimerSession();
+    if (session) {
+      // 復帰直後に即時表示を補正
+      tickTimer(session.startMs);
+      // setInterval を再起動（スリープ中に止まっている場合があるため）
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => tickTimer(session.startMs), 1000);
+    }
+  }
 });
 
 /** 直近5件の記録リストを描画する */
@@ -1050,6 +1131,16 @@ function renderProgress() {
 (function init() {
   renderGoalScreen();   // 目標画面を初期表示
   renderRecentList();   // 記録一覧を初期表示
+
+  // ★ タイマーセッションの復元
+  // スリープ中にページがリロードされた場合も
+  // localStorage に保存されたセッションから計測を再開する
+  const session = loadTimerSession();
+  if (session) {
+    switchScreen('screen-record');
+    startTimerUI(session.subject, session.startMs);
+    showToast(`${session.subject} の計測を再開しました`);
+  }
 })();
 </script>
 </body>
