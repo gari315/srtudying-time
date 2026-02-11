@@ -1,19 +1,222 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/index.html b/index.html
-index 8b137891791fe96927ad78e64b0aad7bded08bdc..6d14aa72ad4320c88a3a45b6b0a2dc8febb930a1 100644
+index 8b137891791fe96927ad78e64b0aad7bded08bdc..51910f0d777d93150ddef832d45ddd62b84005b7 100644
 --- a/index.html
 +++ b/index.html
-@@ -1 +1,87 @@
+@@ -1 +1,527 @@
 +<!DOCTYPE html>
 +<html lang="ja">
 +  <head>
 +    <meta charset="UTF-8" />
 +    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-+    <title>学習時間トラッカー</title>
-+    <link rel="stylesheet" href="style.css" />
-+    <!-- Chart.js を CDN から読み込み -->
++    <title>学習時間トラッカー（1ファイル版）</title>
++    <!-- Chart.js（CDN）: HTML単体でも動作するように外部ライブラリのみ読み込み -->
 +    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
-+    <script src="script.js" defer></script>
+ 
++    <style>
++      :root {
++        --bg: #f4f6fb;
++        --card: #ffffff;
++        --text: #222;
++        --muted: #666;
++        --primary: #2f6fed;
++        --primary-dark: #1f54bf;
++        --danger: #d64545;
++        --danger-dark: #aa3030;
++        --border: #dfe4ef;
++        --shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
++      }
++
++      * {
++        box-sizing: border-box;
++      }
++
++      body {
++        margin: 0;
++        font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
++        background: var(--bg);
++        color: var(--text);
++        line-height: 1.5;
++      }
++
++      .app {
++        max-width: 720px;
++        margin: 0 auto;
++        padding: 16px;
++      }
++
++      .app-header h1 {
++        margin: 0;
++        font-size: 1.6rem;
++      }
++
++      .app-header p {
++        margin: 8px 0 0;
++        color: var(--muted);
++      }
++
++      .tab-nav {
++        display: grid;
++        grid-template-columns: repeat(3, 1fr);
++        gap: 8px;
++        margin: 20px 0;
++      }
++
++      .tab-btn {
++        border: 1px solid var(--border);
++        background: #fff;
++        border-radius: 10px;
++        padding: 10px 8px;
++        font-size: 0.95rem;
++        cursor: pointer;
++      }
++
++      .tab-btn.active {
++        border-color: var(--primary);
++        color: var(--primary);
++        font-weight: 700;
++      }
++
++      .screen {
++        display: none;
++      }
++
++      .screen.active {
++        display: block;
++      }
++
++      .card {
++        background: var(--card);
++        border-radius: 14px;
++        box-shadow: var(--shadow);
++        border: 1px solid var(--border);
++        padding: 16px;
++        margin-bottom: 14px;
++      }
++
++      label {
++        display: block;
++        margin-bottom: 8px;
++        font-weight: 700;
++      }
++
++      input[type="number"] {
++        width: 100%;
++        padding: 12px;
++        border: 1px solid #cfd7ea;
++        border-radius: 10px;
++        font-size: 1rem;
++        margin-bottom: 12px;
++      }
++
++      button {
++        border: none;
++        border-radius: 10px;
++        padding: 12px 14px;
++        font-size: 1rem;
++        cursor: pointer;
++      }
++
++      button:disabled {
++        cursor: not-allowed;
++        opacity: 0.55;
++      }
++
++      .primary {
++        background: var(--primary);
++        color: #fff;
++      }
++
++      .primary:hover {
++        background: var(--primary-dark);
++      }
++
++      .danger {
++        background: var(--danger);
++        color: #fff;
++      }
++
++      .danger:hover {
++        background: var(--danger-dark);
++      }
++
++      .subject-grid {
++        display: grid;
++        grid-template-columns: repeat(2, 1fr);
++        gap: 8px;
++        margin-bottom: 14px;
++      }
++
++      .subject-btn {
++        background: #eef3ff;
++        border: 1px solid #c6d5f9;
++      }
++
++      .subject-btn.active {
++        background: #d8e5ff;
++        border-color: var(--primary);
++        color: #1744a1;
++        font-weight: 700;
++      }
++
++      .timer-actions {
++        display: grid;
++        grid-template-columns: 1fr 1fr;
++        gap: 8px;
++      }
++
++      .message {
++        min-height: 1.3em;
++        margin-top: 10px;
++        color: #34405f;
++        font-size: 0.95rem;
++      }
++
++      .stats-grid {
++        display: grid;
++        grid-template-columns: 1fr 1fr;
++        gap: 10px;
++      }
++
++      .stat h3 {
++        margin: 0;
++        font-size: 1rem;
++      }
++
++      .stat p {
++        margin: 8px 0 0;
++        font-size: 1.3rem;
++        font-weight: 700;
++      }
++
++      .chart-card {
++        padding-bottom: 8px;
++      }
++
++      .chart-wrap {
++        position: relative;
++        height: 280px;
++      }
++
++      @media (max-width: 560px) {
++        .app-header h1 {
++          font-size: 1.35rem;
++        }
++
++        .tab-btn {
++          font-size: 0.88rem;
++          padding: 9px 4px;
++        }
++
++        .stats-grid {
++          grid-template-columns: 1fr;
++        }
++
++        .subject-grid {
++          grid-template-columns: 1fr;
++        }
++      }
++    </style>
 +  </head>
 +  <body>
 +    <div class="app">
@@ -21,8 +224,8 @@ index 8b137891791fe96927ad78e64b0aad7bded08bdc..6d14aa72ad4320c88a3a45b6b0a2dc8f
 +        <h1>学習時間トラッカー</h1>
 +        <p>1週間の学習時間を目標設定・記録・可視化</p>
 +      </header>
- 
-+      <!-- SPA 風の画面切り替え用ナビゲーション -->
++
++      <!-- SPA 風の画面切り替え -->
 +      <nav class="tab-nav" aria-label="画面切り替え">
 +        <button class="tab-btn active" data-screen="goal-screen">目標設定</button>
 +        <button class="tab-btn" data-screen="record-screen">学習記録</button>
@@ -35,13 +238,7 @@ index 8b137891791fe96927ad78e64b0aad7bded08bdc..6d14aa72ad4320c88a3a45b6b0a2dc8f
 +          <h2 id="goal-title">目標時間設定（直近1週間）</h2>
 +          <div class="card">
 +            <label for="targetMinutes">目標総勉強時間（分）</label>
-+            <input
-+              type="number"
-+              id="targetMinutes"
-+              min="1"
-+              inputmode="numeric"
-+              placeholder="例: 300"
-+            />
++            <input type="number" id="targetMinutes" min="1" inputmode="numeric" placeholder="例: 300" />
 +            <button id="saveGoalBtn" class="primary">目標を保存</button>
 +            <p id="goalMessage" class="message" aria-live="polite"></p>
 +          </div>
@@ -59,7 +256,6 @@ index 8b137891791fe96927ad78e64b0aad7bded08bdc..6d14aa72ad4320c88a3a45b6b0a2dc8f
 +              <button class="subject-btn" data-subject="理科">理科</button>
 +              <button class="subject-btn" data-subject="社会">社会</button>
 +            </div>
-+
 +            <div class="timer-actions">
 +              <button id="startBtn" class="primary">開始</button>
 +              <button id="endBtn" class="danger" disabled>終了</button>
@@ -84,11 +280,255 @@ index 8b137891791fe96927ad78e64b0aad7bded08bdc..6d14aa72ad4320c88a3a45b6b0a2dc8f
 +
 +          <div class="card chart-card">
 +            <h3>科目別学習時間（直近1週間）</h3>
-+            <canvas id="subjectChart" aria-label="科目別棒グラフ"></canvas>
++            <div class="chart-wrap">
++              <canvas id="subjectChart" aria-label="科目別棒グラフ"></canvas>
++            </div>
++            <p id="chartWarning" class="message"></p>
 +          </div>
 +        </section>
 +      </main>
 +    </div>
++
++    <script>
++      // LocalStorage のキー名
++      const STORAGE_KEY = "studyTrackerData";
++      // アプリで扱う科目一覧
++      const SUBJECTS = ["国語", "数学", "英語", "理科", "社会"];
++
++      // 初期データ構造
++      const defaultData = {
++        records: [],
++        goal: { mode: "weekly", targetMinutes: 300 },
++      };
++
++      // 現在の記録セッション（開始時刻・科目）
++      const currentSession = { subject: null, startAt: null };
++      let subjectChart = null;
++
++      // 保存データを読み込む（不正時は初期値）
++      function loadData() {
++        try {
++          const raw = localStorage.getItem(STORAGE_KEY);
++          if (!raw) return structuredClone(defaultData);
++          const parsed = JSON.parse(raw);
++          return {
++            records: Array.isArray(parsed.records) ? parsed.records : [],
++            goal: {
++              mode: "weekly",
++              targetMinutes: Number(parsed?.goal?.targetMinutes) > 0 ? Number(parsed.goal.targetMinutes) : 300,
++            },
++          };
++        } catch {
++          return structuredClone(defaultData);
++        }
++      }
++
++      // データを LocalStorage に保存
++      function saveData(data) {
++        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
++      }
++
++      // YYYY-MM-DD 形式の日付文字列を作る
++      function formatDate(date) {
++        const y = date.getFullYear();
++        const m = String(date.getMonth() + 1).padStart(2, "0");
++        const d = String(date.getDate()).padStart(2, "0");
++        return `${y}-${m}-${d}`;
++      }
++
++      // 直近7日間（今日含む）の記録を抽出
++      function filterLast7Days(records) {
++        const now = new Date();
++        const start = new Date(now);
++        start.setHours(0, 0, 0, 0);
++        start.setDate(start.getDate() - 6);
++        return records.filter((record) => {
++          const recDate = new Date(`${record.date}T00:00:00`);
++          return recDate >= start && recDate <= now;
++        });
++      }
++
++      // 科目別合計時間を作る
++      function calcSubjectTotals(records) {
++        const totals = Object.fromEntries(SUBJECTS.map((subject) => [subject, 0]));
++        records.forEach((record) => {
++          if (totals[record.subject] !== undefined) {
++            totals[record.subject] += Number(record.duration) || 0;
++          }
++        });
++        return totals;
++      }
++
++      // タブ切り替え（SPA風）
++      function setupTabs() {
++        const tabButtons = document.querySelectorAll(".tab-btn");
++        const screens = document.querySelectorAll(".screen");
++
++        tabButtons.forEach((btn) => {
++          btn.addEventListener("click", () => {
++            tabButtons.forEach((b) => b.classList.remove("active"));
++            screens.forEach((s) => s.classList.remove("active"));
++            btn.classList.add("active");
++            const targetId = btn.dataset.screen;
++            document.getElementById(targetId).classList.add("active");
++
++            if (targetId === "progress-screen") updateProgressView();
++          });
++        });
++      }
++
++      // 目標値欄を初期化
++      function initGoalView() {
++        const data = loadData();
++        document.getElementById("targetMinutes").value = data.goal.targetMinutes;
++      }
++
++      // 目標保存イベント
++      function setupGoalActions() {
++        const saveBtn = document.getElementById("saveGoalBtn");
++        const input = document.getElementById("targetMinutes");
++        const message = document.getElementById("goalMessage");
++
++        saveBtn.addEventListener("click", () => {
++          const value = Number(input.value);
++          if (!Number.isFinite(value) || value <= 0) {
++            message.textContent = "1以上の数値を入力してください。";
++            return;
++          }
++
++          const data = loadData();
++          data.goal = { mode: "weekly", targetMinutes: Math.round(value) };
++          saveData(data);
++          message.textContent = `目標 ${Math.round(value)} 分を保存しました。`;
++          updateProgressView();
++        });
++      }
++
++      // 記録画面イベント
++      function setupRecordActions() {
++        const subjectButtons = document.querySelectorAll(".subject-btn");
++        const startBtn = document.getElementById("startBtn");
++        const endBtn = document.getElementById("endBtn");
++        const status = document.getElementById("recordStatus");
++
++        // 科目選択
++        subjectButtons.forEach((btn) => {
++          btn.addEventListener("click", () => {
++            subjectButtons.forEach((b) => b.classList.remove("active"));
++            btn.classList.add("active");
++            currentSession.subject = btn.dataset.subject;
++            status.textContent = `科目「${currentSession.subject}」を選択しました。`;
++          });
++        });
++
++        // 開始時刻を記録
++        startBtn.addEventListener("click", () => {
++          if (!currentSession.subject) {
++            status.textContent = "先に科目を選択してください。";
++            return;
++          }
++
++          currentSession.startAt = new Date();
++          startBtn.disabled = true;
++          endBtn.disabled = false;
++          status.textContent = `開始時刻を記録しました（${currentSession.startAt.toLocaleTimeString("ja-JP")}）。`;
++        });
++
++        // 終了時刻から学習時間（分）を計算して保存
++        endBtn.addEventListener("click", () => {
++          if (!currentSession.startAt || !currentSession.subject) {
++            status.textContent = "開始してから終了してください。";
++            return;
++          }
++
++          const endAt = new Date();
++          const durationMinutes = Math.max(1, Math.round((endAt - currentSession.startAt) / 60000));
++          const data = loadData();
++
++          data.records.push({
++            date: formatDate(endAt),
++            subject: currentSession.subject,
++            duration: durationMinutes,
++          });
++          saveData(data);
++
++          status.textContent = `「${currentSession.subject}」を ${durationMinutes} 分記録しました。`;
++          currentSession.startAt = null;
++          startBtn.disabled = false;
++          endBtn.disabled = true;
++          updateProgressView();
++        });
++      }
++
++      // 進捗表示の更新
++      function updateProgressView() {
++        const data = loadData();
++        const recentRecords = filterLast7Days(data.records);
++        const weeklyTotal = recentRecords.reduce((sum, record) => sum + (Number(record.duration) || 0), 0);
++        const remaining = Math.max(0, data.goal.targetMinutes - weeklyTotal);
++        const subjectTotals = calcSubjectTotals(recentRecords);
++
++        document.getElementById("weeklyTotal").textContent = String(weeklyTotal);
++        document.getElementById("remainingMinutes").textContent = String(remaining);
++
++        renderChart(subjectTotals);
++      }
++
++      // 棒グラフ描画
++      function renderChart(subjectTotals) {
++        const ctx = document.getElementById("subjectChart");
++        const warning = document.getElementById("chartWarning");
++        if (!ctx) return;
++
++        // CDN遮断などでChart.jsが読み込めない環境向けフォールバック
++        if (typeof Chart === "undefined") {
++          warning.textContent = "グラフライブラリを読み込めなかったため、棒グラフを表示できません。";
++          return;
++        }
++        warning.textContent = "";
++
++        const labels = SUBJECTS;
++        const values = SUBJECTS.map((s) => subjectTotals[s]);
++
++        if (subjectChart) subjectChart.destroy();
++
++        subjectChart = new Chart(ctx, {
++          type: "bar",
++          data: {
++            labels,
++            datasets: [{
++              label: "学習時間（分）",
++              data: values,
++              backgroundColor: "rgba(47, 111, 237, 0.7)",
++              borderColor: "rgba(47, 111, 237, 1)",
++              borderWidth: 1,
++              borderRadius: 6,
++            }],
++          },
++          options: {
++            responsive: true,
++            maintainAspectRatio: false,
++            scales: {
++              y: { beginAtZero: true, ticks: { stepSize: 10 } },
++            },
++          },
++        });
++      }
++
++      // 初期化
++      function init() {
++        if (!localStorage.getItem(STORAGE_KEY)) {
++          saveData(structuredClone(defaultData));
++        }
++        setupTabs();
++        initGoalView();
++        setupGoalActions();
++        setupRecordActions();
++        updateProgressView();
++      }
++
++      window.addEventListener("DOMContentLoaded", init);
++    </script>
 +  </body>
 +</html>
  
