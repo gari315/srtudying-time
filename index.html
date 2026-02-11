@@ -293,13 +293,21 @@
     }
     .timer-clock {
       font-family: 'Lexend', sans-serif;
-      font-size: 64px;
+      font-size: 56px;
       font-weight: 800;
-      letter-spacing: .04em;
+      letter-spacing: .06em;
       color: var(--text);
       line-height: 1;
     }
     .timer-clock.running { color: var(--accent); }
+    .timer-clock-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin-top: 6px;
+    }
     .timer-status {
       font-size: 13px;
       color: var(--text-sub);
@@ -518,9 +526,10 @@
     </div>
 
     <div class="card">
-      <!-- タイマー表示 -->
+      <!-- タイマー表示（開始時刻） -->
       <div class="timer-display">
-        <div class="timer-clock" id="timer-clock">00:00</div>
+        <div class="timer-clock-label" id="timer-clock-label">　</div>
+        <div class="timer-clock" id="timer-clock">--:--</div>
         <div class="timer-status" id="timer-status">科目を選んで開始してください</div>
       </div>
       <!-- 開始・終了ボタン -->
@@ -780,11 +789,12 @@ const btnStop     = document.getElementById('btn-stop');
 const timerClock  = document.getElementById('timer-clock');
 const timerStatus = document.getElementById('timer-status');
 
-/** 秒数を mm:ss 形式の文字列に変換 */
-function formatMMSS(sec) {
-  const m = String(Math.floor(sec / 60)).padStart(2, '0');
-  const s = String(sec % 60).padStart(2, '0');
-  return `${m}:${s}`;
+/** Unix ms を "HH:MM" 形式の文字列に変換 */
+function formatStartTime(startMs) {
+  const d = new Date(startMs);
+  const h = String(d.getHours()).padStart(2, '0');
+  const m = String(d.getMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
 }
 
 /**
@@ -809,12 +819,10 @@ function loadTimerSession() {
 }
 
 /**
- * タイマーの表示を「現在時刻 - 開始時刻」の差分で更新する
- * setInterval のズレやスリープからの復帰に関係なく常に正確な値を表示する
+ * 開始時刻を "HH:MM 開始" と表示する（更新不要・一度だけ呼ぶ）
  */
 function tickTimer(startMs) {
-  const elapsed = Math.floor((Date.now() - startMs) / 1000);
-  timerClock.textContent = formatMMSS(elapsed);
+  timerClock.textContent = formatStartTime(startMs);
 }
 
 /**
@@ -829,20 +837,20 @@ function startTimerUI(subject, startMs) {
   btnStart.disabled = true;
   btnStop.disabled  = false;
   timerClock.classList.add('running');
-  timerStatus.textContent = `${subject} — 計測中...`;
+  document.getElementById('timer-clock-label').textContent = '開始時刻';
+  timerStatus.textContent = `${subject} — 計測中（終了したら「終了」を押してください）`;
 
   // 科目ボタンの選択状態を反映
   document.querySelectorAll('.subject-btn').forEach(b => {
     b.classList.toggle('selected', b.dataset.subject === subject);
   });
 
-  // 即時表示（スリープ復帰時のカクつきを防ぐ）
+  // 開始時刻を表示（一度だけ描画すればよい。更新不要）
   tickTimer(startMs);
 
-  // 毎秒 tick（setInterval はあくまで「表示更新トリガー」として使う）
-  // 実際の経過秒は Date.now() との差分で計算するためズレが起きない
+  // 開始時刻の表示は固定値なので setInterval は不要
   clearInterval(timerInterval);
-  timerInterval = setInterval(() => tickTimer(startMs), 1000);
+  timerInterval = null;
 }
 
 /** 科目ボタンのクリック処理 */
@@ -905,7 +913,8 @@ btnStop.addEventListener('click', () => {
   btnStart.disabled = false;
   btnStop.disabled  = true;
   timerClock.classList.remove('running');
-  timerClock.textContent  = '00:00';
+  timerClock.textContent  = '--:--';
+  document.getElementById('timer-clock-label').textContent = '　';
   timerStatus.textContent = `${session.subject} ${durationMin}分 を記録しました！`;
 
   // 科目ボタンの選択解除
@@ -924,11 +933,8 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     const session = loadTimerSession();
     if (session) {
-      // 復帰直後に即時表示を補正
+      // 復帰時に開始時刻を再描画（念のため）
       tickTimer(session.startMs);
-      // setInterval を再起動（スリープ中に止まっている場合があるため）
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => tickTimer(session.startMs), 1000);
     }
   }
 });
